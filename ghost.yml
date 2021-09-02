@@ -450,3 +450,109 @@ Resources:
             Ref: AWS::StackName
         - Key: Role
           Value: "Security"
+
+  # name=efs, description="defines access to efs mount points":
+  #   ingress rule_1: port=2049, source_security_group={ec2_pool}, protocol=tcp
+  #   ingress rule_2: port=2049, source_security_group={fargate_pool}, protocol=tcp
+  #   egress rule: allows any destination to {vpc_cidr}
+
+  EFSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupName: efs
+      VpcId: 
+        Ref: VPC
+      GroupDescription: "Defines access to efs mount points"
+      SecurityGroupIngress: 
+        - IpProtocol: "tcp"
+          FromPort: "2049"
+          ToPort: "2049"
+          SourceSecurityGroupId: 
+            Ref: EC2PoolSecurityGroup
+        - IpProtocol: "tcp"
+          FromPort: "2049"
+          ToPort: "2049"
+          SourceSecurityGroupId: 
+            Ref: FargatePoolSecurityGroup
+      SecurityGroupEgress: 
+        - IpProtocol: "tcp"
+          FromPort: "0"
+          ToPort: "65535"
+          CidrIp:
+            'Fn::FindInMap':
+              - SubnetConfig
+              - VPC
+              - CIDR
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-efs-security-group"
+        - Key: Project88
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Security"
+
+  # name=alb, description="defines access to alb":
+  #   ingress rule_1: port=80, source={your_ip}, protocol=tcp
+  #   egress rule 1: port=any, source_security_group={ec2_pool}, protocol=any
+  #   egress rule 2: port=any, source_security_group={fargate_pool}, protocol=any
+
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupName: alb
+      VpcId: 
+        Ref: VPC
+      GroupDescription: "Defines access to ALB"
+      SecurityGroupIngress: 
+        - IpProtocol: "tcp"
+          FromPort: "80"
+          ToPort: "80"
+          CidrIp: 
+            Ref: MyIP
+      SecurityGroupEgress: 
+        - IpProtocol: "tcp"
+          FromPort: "0"
+          ToPort: "65535"
+          SourceSecurityGroupId: 
+            Ref: EC2PoolSecurityGroup
+        - IpProtocol: "tcp"
+          FromPort: "0"
+          ToPort: "65535"
+          SourceSecurityGroupId: 
+            Ref: FargatePoolSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-alb-security-group"
+        - Key: Project88
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Security"
+
+# name=vpc_endpoint, description="defines access to vpc endpoints":
+# ingress rule_1: port=443, source={vpc_cidr}, protocol=tcp
+  VPCEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupName: vpc_endpoint
+      VpcId: 
+        Ref: VPC
+      GroupDescription: "defines access to vpc endpoints"
+      SecurityGroupIngress: 
+        - IpProtocol: "tcp"
+          FromPort: "443"
+          ToPort: "443"
+          CidrIp:
+            'Fn::FindInMap':
+              - SubnetConfig
+              - VPC
+              - CIDR
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-vpc-endpoint-security-group"
+        - Key: Project88
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Security"
