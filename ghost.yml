@@ -1,0 +1,452 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  MyIP:
+    Description: "Allow SSH traffic from this IP. Enter your current external IP in format x.x.x.x/xx"
+    Type: "String"
+    Default: "46.53.240.123/32"
+
+# VPC:
+
+# name=cloudx, cidr=10.10.0.0/16, enable_dns_support=true, enable_dns_hostnames=true
+
+
+# 3 x Public subnets:
+
+# name=public_a, cidr=10.10.1.0/24, az=a
+# name=public_b, cidr=10.10.2.0/24, az=b
+# name=public_c, cidr=10.10.3.0/24, az=c
+
+
+# 3 x Private subnets:
+
+# name=private_a, cidr=10.10.10.0/24, az=a
+# name=private_b, cidr=10.10.11.0/24, az=b
+# name=private_c, cidr=10.10.12.0/24, az=c
+
+
+# 3 x Database subnets(private)
+
+# name=private_db_a, cidr=10.10.20.0/24, az=a
+# name=private_db_b, cidr=10.10.21.0/24, az=b
+# name=private_db_c, cidr=10.10.22.0/24, az=c
+
+Mappings:
+  SubnetConfig:
+    VPC:
+      CIDR: 10.10.0.0/16
+
+    PublicA:
+      CIDR: 10.10.1.0/24
+    PublicB:
+      CIDR: 10.10.2.0/24
+    PublicC:
+      CIDR: 10.10.3.0/24
+  
+
+    PrivateA:
+      CIDR: 10.10.10.0/24
+    PrivateB:
+      CIDR: 10.10.11.0/24
+    PrivateC:
+      CIDR: 10.10.12.0/24
+
+    PrivateDBA:
+      CIDR: 10.10.20.0/24
+    PrivateDBB:
+      CIDR: 10.10.21.0/24
+    PrivateDBC:
+      CIDR: 10.10.22.0/24
+
+Resources:
+  # Step 1
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      CidrBlock:
+        'Fn::FindInMap':
+          - SubnetConfig
+          - VPC
+          - CIDR
+      Tags:
+        - Key: Name
+          Value: cloudx
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Network"
+
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-internet-gateway"
+        - Key: NetworkType
+          Value: Public
+
+        - Key: Role
+          Value: "Network"
+
+  InternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId:
+        Ref: VPC
+      InternetGatewayId:
+        Ref: InternetGateway
+
+
+  PublicSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        'Fn::FindInMap':
+          - SubnetConfig
+          - PublicA
+          - CIDR
+      AvailabilityZone: !Sub '${AWS::Region}a'
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-subnet-a"
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Network"
+        - Key: NetworkType
+          Value: Public
+  PublicSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        'Fn::FindInMap':
+          - SubnetConfig
+          - PublicB
+          - CIDR
+      AvailabilityZone: !Sub '${AWS::Region}b'
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-subnet-b"
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Network"
+        - Key: NetworkType
+          Value: Public
+  PublicSubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        'Fn::FindInMap':
+          - SubnetConfig
+          - PublicC
+          - CIDR
+      AvailabilityZone: !Sub '${AWS::Region}c'
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-subnet-c"
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Network"
+        - Key: NetworkType
+          Value: Public
+        
+  PrivateSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        'Fn::FindInMap':
+          - SubnetConfig
+          - PrivateB
+          - CIDR
+      AvailabilityZone: !Sub '${AWS::Region}b'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-private-subnet-b"
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Network"
+        - Key: NetworkType
+          Value: Private
+        
+  PrivateSubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        'Fn::FindInMap':
+          - SubnetConfig
+          - PrivateC
+          - CIDR
+      AvailabilityZone: !Sub '${AWS::Region}c'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-private-subnet-c"
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Network"
+        - Key: NetworkType
+          Value: Private
+
+  PrivateDBSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        'Fn::FindInMap':
+          - SubnetConfig
+          - PrivateDBA
+          - CIDR
+      AvailabilityZone: !Sub '${AWS::Region}a'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-private-subnet-db-a"
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Network"
+        - Key: NetworkType
+          Value: Private
+
+  PrivateDBSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        'Fn::FindInMap':
+          - SubnetConfig
+          - PrivateDBB
+          - CIDR
+      AvailabilityZone: !Sub '${AWS::Region}b'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-private-subnet-db-b"
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Network"
+        - Key: NetworkType
+          Value: Private
+        
+  PrivateDBSubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        'Fn::FindInMap':
+          - SubnetConfig
+          - PrivateDBC
+          - CIDR
+      AvailabilityZone: !Sub '${AWS::Region}c'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-private-subnet-db-c"
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Network"
+        - Key: NetworkType
+          Value: Private
+
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-route-table"
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Network"
+        - Key: NetworkType
+          Value: Public
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+                
+  PublicSubnetRouteTableAssociationA:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId:
+        Ref: PublicSubnetA
+      RouteTableId:
+        Ref: PublicRouteTable
+  PublicSubnetRouteTableAssociationB:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId:
+        Ref: PublicSubnetB
+      RouteTableId:
+        Ref: PublicRouteTable
+  PublicSubnetRouteTableAssociationC:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId:
+        Ref: PublicSubnetC
+      RouteTableId:
+        Ref: PublicRouteTable
+
+# todo: private routing
+
+#Step 2
+
+# name=ec2_pool, description="allows access for ec2 instances":
+
+  EC2PoolSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: ec2_pool 
+      VpcId: 
+        Ref: VPC
+      GroupDescription: "Allows access for ec2 instances"
+      SecurityGroupIngress: 
+        - IpProtocol: "tcp"
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: 
+            Ref: MyIP
+        - IpProtocol: "tcp"
+          FromPort: "2049"
+          ToPort: "2049"
+          CidrIp:
+            'Fn::FindInMap':
+              - SubnetConfig
+              - VPC
+              - CIDR
+        - IpProtocol: "tcp"
+          FromPort: "2369"
+          ToPort: "2369"
+          CidrIp:
+            'Fn::FindInMap':
+              - SubnetConfig
+              - VPC
+              - CIDR
+          #todo: cidr ip from ALB
+      SecurityGroupEgress: 
+        - IpProtocol: "tcp"
+          FromPort: "0"
+          ToPort: "65535"
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-pool-security-group"
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Security"
+
+  FargatePoolSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupName: fargate_pool
+      VpcId: 
+        Ref: VPC
+      GroupDescription: "Allows access for fargate instances"
+      SecurityGroupIngress: 
+        - IpProtocol: "tcp"
+          FromPort: "2049"
+          ToPort: "2049"
+          CidrIp:
+            'Fn::FindInMap':
+              - SubnetConfig
+              - VPC
+              - CIDR
+        - IpProtocol: "tcp"
+          FromPort: "2369"
+          ToPort: "2369"
+          CidrIp:
+            'Fn::FindInMap':
+              - SubnetConfig
+              - VPC
+              - CIDR
+          #todo: cidr ip from ALB
+      SecurityGroupEgress: 
+        - IpProtocol: "tcp"
+          FromPort: "0"
+          ToPort: "65535"
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-fargate-pool-security-group"
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Security"
+
+          # name=mysql, description="defines access to ghost db":
+
+
+          #   ingress rule_1: port=3306, source_security_group={ec2_pool}, protocol=tcp
+          #   ingress rule_2: port=3306, source_security_group={fargate_pool}, protocol=tcp
+
+  MySQLSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupName: mysql
+      VpcId: 
+        Ref: VPC
+      GroupDescription: "Defines access to ghost db"
+      SecurityGroupIngress: 
+        - IpProtocol: "tcp"
+          FromPort: "3306"
+          ToPort: "3306"
+          SourceSecurityGroupId: 
+            Ref: EC2PoolSecurityGroup
+        - IpProtocol: "tcp"
+          FromPort: "3306"
+          ToPort: "3306"
+          SourceSecurityGroupId: 
+            Ref: FargatePoolSecurityGroup
+
+      SecurityGroupEgress: 
+        - IpProtocol: "tcp"
+          FromPort: "0"
+          ToPort: "65535"
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-mysql-security-group"
+        - Key: Project
+          Value:
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Security"
