@@ -4,7 +4,23 @@ Parameters:
     Description: "Allow SSH traffic from this IP. Enter your current external IP in format x.x.x.x/xx"
     Type: "String"
     Default: "46.53.240.123/32"
-
+  DBUsername:
+    NoEcho: 'true'
+    Description: Username for MySQL database access
+    Type: String
+    MinLength: '1'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+    Default: "admin"
+  DBPassword:
+    NoEcho: "true"
+    Description: Password MySQL database access
+    Type: String
+    MinLength: '8'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    Default: "pasSw0rd"
 # VPC:
 
 # name=cloudx, cidr=10.10.0.0/16, enable_dns_support=true, enable_dns_hostnames=true
@@ -556,3 +572,44 @@ Resources:
             Ref: AWS::StackName
         - Key: Role
           Value: "Security"
+
+# Step 3 DB
+# name=ghost, subnet_ids={private_db_a,private_db_b,private_db_c}, description='ghost database subnet group'
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties: 
+      DBSubnetGroupDescription: "ghost database subnet group"
+      DBSubnetGroupName: ghost
+      SubnetIds: 
+        - Ref: PrivateDBSubnetA
+        - Ref: PrivateDBSubnetB
+        - Ref: PrivateDBSubnetC
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-db-subnet-group"
+        - Key: Project
+          Value: 
+            Ref: AWS::StackName
+        - Key: Role
+          Value: "Network"
+
+  # MySQL Database:
+  # name=ghost, instance_type=db.t2.micro, engine_version=8.0, storage=gp2, allocated_space=20Gb, security_groups={mysql}, subnet_groups={ghost}
+  MyDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: ghost
+      DBName: ghost
+      DBInstanceClass: db.t2.micro
+      AllocatedStorage: 20
+      Engine: MySQL
+      EngineVersion: 8.0
+      StorageType: gp2
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      # MonitoringInterval: '60'
+      # MonitoringRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}-rds-monitoring-role'
+      VPCSecurityGroups:
+        - Ref: MySQLSecurityGroup
+      DBSubnetGroupName:
+        Ref: DBSubnetGroup
